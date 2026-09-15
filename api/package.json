@@ -1,0 +1,10 @@
+{
+  "name": "semana-academica-api",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test verificacoes/fatia1.spec.js"
+  }
+}
