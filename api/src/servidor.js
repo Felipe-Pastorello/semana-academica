@@ -13,6 +13,8 @@ const SALAS = [
 ];
 
 let atividades = [];
+let inscricoes = [];
+let contadorInscricoes = 1;
 
 export function tratarRequisicao(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -20,8 +22,22 @@ export function tratarRequisicao(req, res) {
 
   if (pathname === '/_teste/reset' && req.method === 'POST') {
     atividades = [];
+    inscricoes = [];
+    contadorInscricoes = 1;
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  if (pathname === '/_teste/atividades' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      const ativ = JSON.parse(body);
+      atividades.push(ativ);
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(ativ));
+    });
     return;
   }
 
@@ -43,6 +59,60 @@ export function tratarRequisicao(req, res) {
   if (req.method === 'GET' && pathname === '/atividades') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(atividades));
+    return;
+  }
+
+  if (req.method === 'POST' && /^\/atividades\/[^/]+\/inscricoes$/.test(pathname)) {
+    const usuario = req.headers['x-usuario'];
+    if (usuario.startsWith('org-')) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ erro: 'SOMENTE_PARTICIPANTE', mensagem: 'Apenas participantes podem se inscrever' }));
+      return;
+    }
+
+    const match = pathname.match(/^\/atividades\/([^/]+)\/inscricoes$/);
+    const atividadeId = match[1];
+    const atividade = atividades.find(a => a.id === atividadeId);
+
+    if (!atividade) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ erro: 'ATIVIDADE_NAO_ENCONTRADA' }));
+      return;
+    }
+
+    if (atividade.status === 'cancelada') {
+      res.writeHead(422, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ erro: 'ATIVIDADE_CANCELADA' }));
+      return;
+    }
+
+    if (atividade.status === 'encerrada') {
+      res.writeHead(422, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ erro: 'INSCRICOES_ENCERRADAS' }));
+      return;
+    }
+
+    const jaInscrito = inscricoes.some(i => i.atividadeId === atividadeId && i.participanteId === usuario && (i.status === 'confirmada' || i.status === 'em_espera'));
+    if (jaInscrito) {
+      res.writeHead(422, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ erro: 'JA_INSCRITO' }));
+      return;
+    }
+
+    const vagasOcupadas = inscricoes.filter(i => i.atividadeId === atividadeId && i.status === 'confirmada').length;
+    const status = vagasOcupadas < atividade.capacidade ? 'confirmada' : 'em_espera';
+
+    const novaInscricao = {
+      id: String(contadorInscricoes++),
+      atividadeId,
+      participanteId: usuario,
+      status,
+      criadoEm: new Date().toISOString()
+    };
+    inscricoes.push(novaInscricao);
+
+    res.writeHead(201, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(novaInscricao));
     return;
   }
 

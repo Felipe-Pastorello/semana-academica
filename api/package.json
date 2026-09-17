@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "test": "node --test verificacoes/fatia1.spec.js"
+    "test": "node --test verificacoes/fatia1.spec.js verificacoes/fatia1-inscricoes.spec.js"
   }
 }
