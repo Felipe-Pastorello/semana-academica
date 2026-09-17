@@ -99,6 +99,41 @@ export function tratarRequisicao(req, res) {
       return;
     }
 
+    // R4 — Conflito de Horário: O participante não pode ocupar vaga em uma atividade se já possuir outra inscrição confirmada com encontro sobreposto (encostar horários não gera conflito). Apenas inscrições que ocupam vaga são verificadas.
+    if (atividade.inicio && atividade.fim) {
+      const minhasConfirmadas = inscricoes.filter(i => i.participanteId === usuario && i.status === 'confirmada');
+      for (const insc of minhasConfirmadas) {
+        const ativExistente = atividades.find(a => a.id === insc.atividadeId);
+        if (ativExistente && ativExistente.inicio && ativExistente.fim) {
+          const inicio1 = new Date(atividade.inicio).getTime();
+          const fim1 = new Date(atividade.fim).getTime();
+          const inicio2 = new Date(ativExistente.inicio).getTime();
+          const fim2 = new Date(ativExistente.fim).getTime();
+
+          // Sobreposição se início1 < fim2 e inicio2 < fim1
+          if (inicio1 < fim2 && inicio2 < fim1) {
+            res.writeHead(422, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ erro: 'CONFLITO_DE_HORARIO' }));
+            return;
+          }
+        }
+      }
+    }
+
+    // R5 — Limite de Minicursos: O participante pode ter no máximo 3 minicursos ocupando vaga simultaneamente. Palestras e inscrições em espera não contam para este limite.
+    if (atividade.tipo === 'minicurso') {
+      const minicursosConfirmados = inscricoes.filter(i => {
+        if (i.participanteId !== usuario || i.status !== 'confirmada') return false;
+        const a = atividades.find(act => act.id === i.atividadeId);
+        return a && a.tipo === 'minicurso';
+      }).length;
+
+      if (minicursosConfirmados >= 3) {
+        res.writeHead(422, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ erro: 'LIMITE_DE_MINICURSOS' }));
+        return;
+      }
+    }
     const vagasOcupadas = inscricoes.filter(i => i.atividadeId === atividadeId && i.status === 'confirmada').length;
     const status = vagasOcupadas < atividade.capacidade ? 'confirmada' : 'em_espera';
 
