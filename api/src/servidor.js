@@ -151,6 +151,51 @@ export function tratarRequisicao(req, res) {
     return;
   }
 
+  if (req.method === 'POST' && /^\/inscricoes\/[^/]+\/cancelamento$/.test(pathname)) {
+    const usuario = req.headers['x-usuario'];
+    const match = pathname.match(/^\/inscricoes\/([^/]+)\/cancelamento$/);
+    const inscricaoId = match[1];
+    const inscricao = inscricoes.find(i => i.id === inscricaoId);
+
+    if (!inscricao) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ erro: 'INSCRICAO_NAO_ENCONTRADA' }));
+      return;
+    }
+
+    if (inscricao.status === 'cancelada' || inscricao.status === 'expirada') {
+      res.writeHead(422, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ erro: 'INSCRICAO_INATIVA' }));
+      return;
+    }
+
+    const atividade = atividades.find(a => a.id === inscricao.atividadeId);
+    if (atividade && atividade.inicio && new Date() >= new Date(atividade.inicio)) {
+      res.writeHead(422, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ erro: 'ATIVIDADE_JA_INICIADA' }));
+      return;
+    }
+
+    const eraConfirmada = inscricao.status === 'confirmada';
+    inscricao.status = 'cancelada';
+
+    // R7 — Convocação da Lista de Espera: Quando uma vaga é liberada por cancelamento, o primeiro da lista de espera é convocado, desde que o prazo da convocação não ultrapasse o fechamento das inscrições da atividade.
+    if (eraConfirmada && atividade) {
+      const primeiroEmEspera = inscricoes.find(i => i.atividadeId === atividade.id && i.status === 'em_espera');
+      if (primeiroEmEspera) {
+        // Verificar se não ultrapassa o fechamento das inscrições (se houver encerramento)
+        const encerramento = atividade.encerramento ? new Date(atividade.encerramento) : null;
+        if (!encerramento || new Date() <= encerramento) {
+          primeiroEmEspera.status = 'confirmada';
+        }
+      }
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(inscricao));
+    return;
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ erro: 'NAO_ENCONTRADO', mensagem: 'Rota não encontrada' }));
 }
