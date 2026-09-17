@@ -23,6 +23,10 @@ export default function App() {
   // Detalhe / Modal
   const [atividadeSelecionada, setAtividadeSelecionada] = useState(null);
   const [modalDetalheAberto, setModalDetalheAberto] = useState(false);
+  const [minhasInscricoes, setMinhasInscricoes] = useState([]);
+
+  // Aba ativa: 'programacao' ou 'inscricoes'
+  const [abaAtiva, setAbaAtiva] = useState('programacao');
 
   // Criar Atividade
   const [modalCriarAberto, setModalCriarAberto] = useState(false);
@@ -65,6 +69,53 @@ export default function App() {
       setAtividades([]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function realizarInscricao(atividadeId) {
+    setErro(null);
+    setSucesso(null);
+    try {
+      const res = await fetch(`${apiUrl}/atividades/${atividadeId}/inscricoes`, {
+        method: 'POST',
+        headers: { 'X-Usuario': usuario }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`[${data.erro || 'ERRO'}] ${data.mensagem || 'Falha na inscrição'}`);
+      }
+      if (data.status === 'confirmada') {
+        setSucesso('Inscrição realizada com sucesso! Vaga confirmada.');
+      } else {
+        setSucesso('Inscrição realizada em fila de espera (vagas esgotadas).');
+      }
+      setModalDetalheAberto(false);
+      carregarDados();
+    } catch (err) {
+      setErro(err.message);
+    }
+  }
+
+  async function cancelarInscricao(inscricaoId) {
+    if (!confirm('Deseja realmente cancelar esta inscrição?')) return;
+    setErro(null);
+    setSucesso(null);
+    try {
+      const res = await fetch(`${apiUrl}/inscricoes/${inscricaoId}/cancelamento`, {
+        method: 'POST',
+        headers: { 'X-Usuario': usuario }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`[${data.erro || 'ERRO'}] ${data.mensagem || 'Falha ao cancelar inscrição'}`);
+      }
+      setSucesso('Inscrição cancelada com sucesso!');
+      carregarDados();
+      if (atividadeSelecionada) {
+        verDetalhe(atividadeSelecionada.id);
+      }
+    } catch (err) {
+      setErro(err.message);
     }
   }
 
@@ -390,6 +441,17 @@ export default function App() {
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded transition shadow"
                 >
                   Cancelar Atividade
+                </button>
+              </div>
+            )}
+
+            {!isOrganizacao && (
+              <div className="border-t border-slate-200 pt-4 flex justify-end">
+                <button 
+                  onClick={() => realizarInscricao(atividadeSelecionada.id)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded transition shadow"
+                >
+                  Inscrever-se / Entrar na Espera
                 </button>
               </div>
             )}
