@@ -19,4 +19,5 @@ Requisições são chamadas ao modelo: cada passo do agente é uma. Skills conta
 | 16/09 22:20 | [New session - 2026-09-17T01:20:32.379Z](ses_f530c8785ffemFBr6UOg2ugtOD.md) | 22 | tdd | auditor | 1 / 6 | 0 | 3 | 0 | — |
 | 16/09 22:33 | [Skill frontend de inscrições e convocações](ses_f5300d684ffeTQdXvndTrIs3Wc.md) | 11 | customize-opencode, frontend, tdd | — | 0 / 0 | 0 | 0 | 0 | — |
 | 16/09 22:40 | [Criação de telas do módulo m2](ses_f52fab5dcfferN1S4iG0kiHuVI.md) | 21 | frontend | — | 0 / 0 | 0 | 0 | 0 | — |
-| | **Total: 7 sessões** | 120 | grilling, to-spec, tdd (4), customize-opencode, frontend (2) | auditor | 6 / 15 | 4 | 4 | 0 | — |
+| 16/09 23:00 | [New session - 2026-09-17T02:00:44.243Z](ses_f52e7ba2fffeyGJn5zSopVcV5l.md) | 3 | novo-subagente | — | 0 / 0 | 0 | 0 | 0 | — |
+| | **Total: 8 sessões** | 123 | grilling, to-spec, tdd (4), customize-opencode, frontend (2), novo-subagente | auditor | 6 / 15 | 4 | 4 | 0 | — |
